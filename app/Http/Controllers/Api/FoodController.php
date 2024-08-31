@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Food;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class FoodController extends Controller
@@ -13,16 +14,24 @@ class FoodController extends Controller
     static private $rules = [
         'name' => 'required|unique:foods,name',
         'price' => 'required|numeric',
-        'image' => 'required|url'
+        'image' => 'required|file',
+        'description' => 'nullable',
+        'category_id' => 'nullable'
     ];
 
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            return Food::all();
+            $foods = Food::all();
+
+            foreach ($foods as $food) {
+                $food->image = $request->schemeAndHttpHost() . '/storage/images/' . $food->image;
+            }
+
+            return response($foods);
         } catch (Exception $e) {
             return response($e, 500);
         }
@@ -34,22 +43,25 @@ class FoodController extends Controller
     public function store(Request $request)
     {
         try {
-            $request->validate(self::$rules);
-
-            $food = Food::create($request->all());
+            $validated = $request->validate(self::$rules);
+            $path_image = $request->file('image')->store('public/images');
+            $validated['image'] = substr($path_image, 14);    //filename
+            $food = Food::create($validated);
+            $food->image = $request->schemeAndHttpHost() . '/storage/images/' . $food->image;
             return response($food, 201);
         } catch (ValidationException | Exception $e) {
             return response(["message" => $e->getMessage()], 400);
         }
     }
 
+
     /**
      * Display the specified resource.
      */
-    public function show(Food $food)
+    public function show(Request $request, Food $food)
     {
         try {
-
+            $food->image = $request->schemeAndHttpHost() . '/storage/images/' . $food->image;
             return response($food);
         } catch (Exception $e) {
             return response([
@@ -62,7 +74,7 @@ class FoodController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, int $id)
     {
         try {
             $validated = $request->validate(self::$rules);
@@ -78,12 +90,13 @@ class FoodController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(int $id)
     {
         $food = Food::find($id);
 
         if ($food) {
-            $isDeleted = $food->delete();
+            $food->delete();
+            Storage::delete('public/images/' . $food->image);
             return response($food);
         } else {
             return response([

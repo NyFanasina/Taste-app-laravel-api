@@ -12,7 +12,7 @@ Route::get('/user', function (Request $request) {
 Route::prefix('/food')->group(function () {
     Route::get('/', [FoodController::class, 'index']);
     Route::post('/', [FoodController::class, 'store']);
-    Route::put('/{id}', [FoodController::class, 'update'])->where('id', '[1-9]+');
-    Route::get('/{food}', [FoodController::class, 'show'])->where('food', '[1-9]+');
-    Route::delete('/{id}', [FoodController::class, 'destroy'])->where('id', '[1-9]+');
+    Route::put('/{id}', [FoodController::class, 'update'])->where('id', '[0-9]+');
+    Route::get('/{food}', [FoodController::class, 'show'])->where('food', '[0-9]+');
+    Route::delete('/{id}', [FoodController::class, 'destroy'])->where('id', '[0-9]+');
 });

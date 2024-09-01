@@ -8,9 +8,16 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use LDAP\Result;
+use PharIo\Manifest\Url;
 
 class FoodController extends Controller
 {
+    private function getImagePath(Request $request, string $image): string
+    {
+        return $request->schemeAndHttpHost() . '/storage/images/' . $image;
+    }
+
     static private $rules = [
         'name' => 'required|unique:foods,name',
         'price' => 'required|numeric',
@@ -26,9 +33,9 @@ class FoodController extends Controller
     {
         try {
             $foods = Food::all();
-
+            // dd(resp);
             foreach ($foods as $food) {
-                $food->image = $request->schemeAndHttpHost() . '/storage/images/' . $food->image;
+                $food->image = self::getImagePath($request, $food->image);
             }
 
             return response($foods);
@@ -47,7 +54,7 @@ class FoodController extends Controller
             $path_image = $request->file('image')->store('public/images');
             $validated['image'] = substr($path_image, 14);    //filename
             $food = Food::create($validated);
-            $food->image = $request->schemeAndHttpHost() . '/storage/images/' . $food->image;
+            $food->image = self::getImagePath($request, $food->image);
             return response($food, 201);
         } catch (ValidationException | Exception $e) {
             return response(["message" => $e->getMessage()], 400);
@@ -61,7 +68,7 @@ class FoodController extends Controller
     public function show(Request $request, Food $food)
     {
         try {
-            $food->image = $request->schemeAndHttpHost() . '/storage/images/' . $food->image;
+            $food->image = self::getImagePath($request, $food->image);
             return response($food);
         } catch (Exception $e) {
             return response([
